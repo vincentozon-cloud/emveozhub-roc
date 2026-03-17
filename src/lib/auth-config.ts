@@ -1,4 +1,3 @@
-// src/lib/auth-config.ts
 
 export type UserRole = 'monitor' | 'operator' | 'admin';
 
