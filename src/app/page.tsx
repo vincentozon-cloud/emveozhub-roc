@@ -1,10 +1,29 @@
-// src/app/page.tsx
+'use client'; // Required for hooks
+
+import { useState, useEffect } from 'react';
 import { ROLE_PERMISSIONS, UserRole } from '@/lib/auth-config';
 
 export default function Home() {
-  // SIMULATION: This would eventually come from a cookie or session
   const currentUserRole: UserRole = 'monitor'; 
   const permissions = ROLE_PERMISSIONS[currentUserRole];
+
+  // Day 3 ROC: Telemetry State Management
+  const [riskScore, setRiskScore] = useState(15);
+  const [lastSignal, setLastSignal] = useState<string | null>(null);
+
+  // Simulate Asynchronous Ingestion & Neural Scoring
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const mockSignals = ['AUTH_ATTEMPT', 'SYSTEM_LOG', 'FIREWALL_HIT'];
+      const randomSignal = mockSignals[Math.floor(Math.random() * mockSignals.length)];
+      
+      setLastSignal(randomSignal);
+      // Heuristic update simulation
+      setRiskScore((prev) => (prev < 95 ? prev + Math.floor(Math.random() * 5) : 15));
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-black">
@@ -15,26 +34,36 @@ export default function Home() {
           <h1 className="text-3xl font-mono font-bold tracking-tighter text-blue-500">
             eMVeOzHub // ROC_INIT
           </h1>
-          <p className="text-zinc-500 font-mono text-sm mt-2">
-            Status: <span className="text-green-500 animate-pulse">SYSTEM_ACTIVE</span>
-          </p>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-zinc-500 font-mono text-sm">
+              Status: <span className="text-green-500 animate-pulse">SYSTEM_ACTIVE</span>
+            </p>
+            {lastSignal && (
+              <p className="text-[10px] font-mono text-blue-400 animate-bounce">
+                RECEIVED: {lastSignal}
+              </p>
+            )}
+          </div>
           <p className="text-xs font-mono text-zinc-600 mt-1 uppercase">
             Access Level: <span className="text-blue-400">{currentUserRole}</span>
           </p>
         </header>
 
         <section className="grid gap-6">
-          {/* Risk Scorer: Visible to all authorized roles */}
+          {/* Risk Scorer: Updated with Zod-Validated Data simulation */}
           {permissions.canViewTelemetry && (
             <div className="p-6 border border-zinc-800 bg-black/50 rounded-lg">
               <h2 className="text-zinc-400 font-mono text-xs uppercase tracking-widest mb-4">
-                AI-Driven Risk Scorer
+                Neural-Heuristic Risk Scorer
               </h2>
               <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-600 w-[15%] transition-all duration-1000"></div>
+                <div 
+                  className="h-full bg-blue-600 transition-all duration-1000" 
+                  style={{ width: `${riskScore}%` }}
+                ></div>
               </div>
               <p className="mt-4 font-mono text-sm text-zinc-500">
-                Initializing neural weights... 15%
+                Processing Telemetry... {riskScore}%
               </p>
             </div>
           )}
