@@ -5,6 +5,7 @@ import { ROLE_PERMISSIONS, UserRole } from '@/lib/auth-config';
 // Day 7 ROC: Integrating the Neural Brain & Mock Telemetry
 import { calculateNeuralRisk, getRiskLevel, TelemetrySignal } from '@/lib/engine/riskScorer';
 import { generateSlowDripAttack, generateBackgroundNoise } from '@/lib/engine/mock-telemetry';
+import SignalLog from '@/components/SignalLog';
 
 export default function Home() {
   const currentUserRole: UserRole = 'monitor'; 
@@ -95,6 +96,9 @@ export default function Home() {
                   PURGE_TELEMETRY_CACHE
                 </button>
               </div>
+
+              {/* NEW: Signal Log visualization integrated within the telemetry section */}
+              <SignalLog signals={signals} />
             </div>
           )}
 
