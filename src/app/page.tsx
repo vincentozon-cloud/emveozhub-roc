@@ -1,81 +1,111 @@
-'use client'; // Required for hooks
+'use client'; 
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ROLE_PERMISSIONS, UserRole } from '@/lib/auth-config';
+// Day 7 ROC: Integrating the Neural Brain & Mock Telemetry
+import { calculateNeuralRisk, getRiskLevel, TelemetrySignal } from '@/lib/engine/riskScorer';
+import { generateSlowDripAttack, generateBackgroundNoise } from '@/lib/engine/mock-telemetry';
 
 export default function Home() {
   const currentUserRole: UserRole = 'monitor'; 
   const permissions = ROLE_PERMISSIONS[currentUserRole];
 
-  // Day 3 ROC: Telemetry State Management
-  const [riskScore, setRiskScore] = useState(15);
+  // State Management for active telemetry signals
+  const [signals, setSignals] = useState<TelemetrySignal[]>([]);
   const [lastSignal, setLastSignal] = useState<string | null>(null);
 
-  // Simulate Asynchronous Ingestion & Neural Scoring
+  // THE BRAIN: Memoized calculation of risk score based on current signal stack
+  const riskScore = useMemo(() => calculateNeuralRisk(signals), [signals]);
+  const riskStatus = useMemo(() => getRiskLevel(riskScore), [riskScore]);
+
+  // Background Noise Simulation (Standard Operations)
   useEffect(() => {
     const timer = setInterval(() => {
-      const mockSignals = ['AUTH_ATTEMPT', 'SYSTEM_LOG', 'FIREWALL_HIT'];
-      const randomSignal = mockSignals[Math.floor(Math.random() * mockSignals.length)];
-      
-      setLastSignal(randomSignal);
-      // Heuristic update simulation
-      setRiskScore((prev) => (prev < 95 ? prev + Math.floor(Math.random() * 5) : 15));
-    }, 3000);
+      const noise = generateBackgroundNoise(1);
+      setSignals((prev) => [...prev, ...noise].slice(-50)); // Keep last 50 for performance
+      setLastSignal(`INBOUND: ${noise[0].origin}`);
+    }, 5000);
 
     return () => clearInterval(timer);
   }, []);
 
+  // MANUAL TRIGGER: Simulate the "Slow-Drip" Attack
+  const triggerSlowDrip = () => {
+    const attack = generateSlowDripAttack(12);
+    setSignals((prev) => [...prev, ...attack]);
+    setLastSignal("CRITICAL: CONSECUTIVE PATTERN DETECTED");
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-black">
-      <div className="w-full max-w-5xl border border-zinc-800 bg-zinc-900/30 p-12 rounded-xl backdrop-blur-md">
+      <div className={`w-full max-w-5xl border border-zinc-800 bg-zinc-900/30 p-12 rounded-xl backdrop-blur-md transition-shadow duration-500 ${riskStatus.glow}`}>
         
         {/* Header Section */}
         <header className="mb-12 border-b border-zinc-800 pb-6">
           <h1 className="text-3xl font-mono font-bold tracking-tighter text-blue-500">
-            eMVeOzHub // ROC_INIT
+            eMVeOzHub // RISK_OPERATIONS_CENTER
           </h1>
           <div className="flex justify-between items-center mt-2">
             <p className="text-zinc-500 font-mono text-sm">
-              Status: <span className="text-green-500 animate-pulse">SYSTEM_ACTIVE</span>
+              Status: <span className={`${riskStatus.color} animate-pulse`}>{riskStatus.label}</span>
             </p>
             {lastSignal && (
-              <p className="text-[10px] font-mono text-blue-400 animate-bounce">
-                RECEIVED: {lastSignal}
+              <p className="text-[10px] font-mono text-blue-400">
+                TELEMETRY: {lastSignal}
               </p>
             )}
           </div>
-          <p className="text-xs font-mono text-zinc-600 mt-1 uppercase">
-            Access Level: <span className="text-blue-400">{currentUserRole}</span>
-          </p>
         </header>
 
         <section className="grid gap-6">
-          {/* Risk Scorer: Updated with Zod-Validated Data simulation */}
+          {/* Neural-Heuristic Risk Pulse */}
           {permissions.canViewTelemetry && (
             <div className="p-6 border border-zinc-800 bg-black/50 rounded-lg">
-              <h2 className="text-zinc-400 font-mono text-xs uppercase tracking-widest mb-4">
-                Neural-Heuristic Risk Scorer
-              </h2>
-              <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+              <div className="flex justify-between items-end mb-4">
+                <h2 className="text-zinc-400 font-mono text-xs uppercase tracking-widest">
+                  Neural-Heuristic Risk Engine
+                </h2>
+                <span className={`font-mono text-xl font-bold ${riskStatus.color}`}>
+                  {riskScore.toFixed(2)}
+                </span>
+              </div>
+              
+              {/* Dynamic Progress Bar */}
+              <div className="h-3 w-full bg-zinc-800 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-blue-600 transition-all duration-1000" 
-                  style={{ width: `${riskScore}%` }}
+                  className={`h-full transition-all duration-1000 ${
+                    riskScore > 15 ? 'bg-red-600' : riskScore > 8 ? 'bg-amber-500' : 'bg-blue-600'
+                  }`} 
+                  style={{ width: `${Math.min((riskScore / 25) * 100, 100)}%` }}
                 ></div>
               </div>
-              <p className="mt-4 font-mono text-sm text-zinc-500">
-                Processing Telemetry... {riskScore}%
-              </p>
+
+              {/* Simulation Controls - The "Portfolio" Proof */}
+              <div className="mt-8 flex gap-4">
+                <button 
+                  onClick={triggerSlowDrip}
+                  className="px-4 py-2 border border-zinc-700 bg-zinc-800/50 text-zinc-300 font-mono text-[10px] hover:bg-red-900/20 hover:text-red-400 transition-all"
+                >
+                  RUN_SIMULATION: SLOW_DRIP_ATTACK
+                </button>
+                <button 
+                  onClick={() => setSignals([])}
+                  className="px-4 py-2 border border-zinc-700 bg-zinc-800/50 text-zinc-300 font-mono text-[10px] hover:bg-zinc-100 hover:text-black transition-all"
+                >
+                  PURGE_TELEMETRY_CACHE
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Mitigation Trigger: ONLY visible to 'operator' or 'admin' */}
+          {/* Mitigation Trigger Logic */}
           {permissions.canTriggerMitigation ? (
             <button className="p-4 border border-blue-900 bg-blue-950/20 text-blue-400 font-mono text-xs uppercase hover:bg-blue-600 hover:text-white transition-all">
               Execute Automated Mitigation
             </button>
           ) : (
-            <div className="p-4 border border-red-900/30 bg-red-950/10 text-red-800 font-mono text-[10px] uppercase">
-              Notice: Mitigation controls restricted for [monitor] access
+            <div className="p-4 border border-red-900/30 bg-red-950/10 text-red-800 font-mono text-[10px] uppercase text-center">
+              SYSTEM_NOTICE: Access Restricted for role [{currentUserRole}]
             </div>
           )}
         </section>
